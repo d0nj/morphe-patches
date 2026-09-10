@@ -19,12 +19,7 @@ val unlockProPatch = bytecodePatch(
             packageName = "bitpit.launcher",
             name = "Niagara Launcher",
             appIconColor = 0x1E88E5,
-            targets = listOf(
-                AppTarget(version = "1.16.23"),
-                AppTarget(version = "1.16.27"),
-                AppTarget(version = "1.16.28"),
-                AppTarget(version = null, isExperimental = true),
-            ),
+            targets = listOf(AppTarget(version = null)),
         ),
     )
 

@@ -7,11 +7,6 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 
-/**
- * The entitlement data class is rebuilt by R8 with new names every release, but its
- * shape is invariant: one obfuscated class with exactly three boolean fields, a
- * public (ZZZ)V constructor and an equals method. Verified unique in 1.16.23/27/28.
- */
 object EntitlementTripleFingerprint : Fingerprint(
     definingClass = "Lb",
     name = "<init>",
@@ -24,11 +19,6 @@ object EntitlementTripleFingerprint : Fingerprint(
             classDef.methods.any { it.name == "equals" },
 )
 
-/**
- * Work method of the telemetry workers: a single obfuscated continuation parameter
- * returning Object (Kotlin suspend doWork). The method name is renamed per build,
- * so only the shape is matched. Verified exactly one match per worker class.
- */
 object UsageReportUploadWorkFingerprint : Fingerprint(
     definingClass = "Lbitpit/launcher/usage/report/UsageReportUploadWorker;",
     accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
@@ -64,10 +54,6 @@ object SingularSessionWorkFingerprint : Fingerprint(
     parameters = listOf("L"),
 )
 
-/**
- * Shared suspend POST helper of the attribution client. Its exact signature
- * (String path, request DTO, KSerializer, continuation) is unique per build.
- */
 object AttributionPostFingerprint : Fingerprint(
     definingClass = "Lb",
     accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
@@ -80,12 +66,6 @@ object AttributionPostFingerprint : Fingerprint(
     ),
 )
 
-/**
- * Runtime method that flips Firebase Analytics collection on. Shape: public final
- * (Z)V in an obfuscated class that both reads a FirebaseAnalytics-typed field and
- * submits a boxed Boolean (TRUE before patching, FALSE in already-patched trees).
- * Verified exactly one match per build in 1.16.23/27/28.
- */
 object FirebaseCollectionToggleFingerprint : Fingerprint(
     definingClass = "Lb",
     accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
