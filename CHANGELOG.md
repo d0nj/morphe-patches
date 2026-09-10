@@ -1,3 +1,9 @@
+## [1.2.0](https://github.com/d0nj/morphe-patches/compare/v1.1.0...v1.2.0) (2026-09-10)
+
+### ✨ New Features
+
+* support any launcher version via structural fingerprints ([249313e](https://github.com/d0nj/morphe-patches/commit/249313ead7a051a54f2358aa0dfa849e06bc45b5))
+
 ## [1.1.0](https://github.com/d0nj/morphe-patches/compare/v1.0.0...v1.1.0) (2026-09-10)
 
 ### ✨ New Features
