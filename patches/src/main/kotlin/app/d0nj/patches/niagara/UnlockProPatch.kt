@@ -19,23 +19,30 @@ val unlockProPatch = bytecodePatch(
             packageName = "bitpit.launcher",
             name = "Niagara Launcher",
             appIconColor = 0x1E88E5,
-            targets = listOf(AppTarget(version = "1.16.23")),
+            targets = listOf(
+                AppTarget(version = "1.16.23"),
+                AppTarget(version = "1.16.27"),
+                AppTarget(version = "1.16.28"),
+                AppTarget(version = null, isExperimental = true),
+            ),
         ),
     )
 
     execute {
-        EntitlementConstructorFingerprint.method.apply {
+        val classType = EntitlementTripleFingerprint.originalClassDef.type
+        val booleanFields = EntitlementTripleFingerprint.originalClassDef.fields
+            .filter { it.type == "Z" }
+        val fieldWrites = booleanFields.joinToString("\n") { field ->
+            "iput-boolean p1, p0, $classType->${field.name}:Z"
+        }
+        EntitlementTripleFingerprint.method.apply {
             clearBody()
             addInstructions(
                 0,
-                """
-                invoke-direct {p0}, Ljava/lang/Object;-><init>()V
-                const/4 p1, 0x1
-                iput-boolean p1, p0, Lb/sLaEsTxcR6YA4wmGL2iX1gH3Cgh;->szRaOYk1SsGxRkFQ2p:Z
-                iput-boolean p1, p0, Lb/sLaEsTxcR6YA4wmGL2iX1gH3Cgh;->LlilrjZop286RU6Rrht2:Z
-                iput-boolean p1, p0, Lb/sLaEsTxcR6YA4wmGL2iX1gH3Cgh;->EjDE9QaqPTG5bo1W:Z
-                return-void
-                """.trimIndent(),
+                "invoke-direct {p0}, Ljava/lang/Object;-><init>()V\n" +
+                    "const/4 p1, 0x1\n" +
+                    fieldWrites +
+                    "\nreturn-void",
             )
         }
     }
