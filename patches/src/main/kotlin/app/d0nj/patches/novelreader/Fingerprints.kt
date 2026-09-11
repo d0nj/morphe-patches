@@ -14,7 +14,3 @@ object IsPremiumFingerprint : Fingerprint(
 object TtsCatalogLoadFingerprint : Fingerprint(
     strings = listOf(" TTS config available yet"),
 )
-
-object TtsVoiceDownloadFingerprint : Fingerprint(
-    strings = listOf("Downloaded voice "),
-)
