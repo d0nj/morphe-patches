@@ -95,7 +95,7 @@
           "signatures": null,
           "targets": [
             {
-              "version": "3.3.23",
+              "version": null,
               "versionCodes": null,
               "isExperimental": false,
               "minSdk": null,
