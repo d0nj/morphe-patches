@@ -10,3 +10,11 @@ object IsPremiumFingerprint : Fingerprint(
     parameters = emptyList(),
     accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
 )
+
+object TtsCatalogLoadFingerprint : Fingerprint(
+    strings = listOf(" TTS config available yet"),
+)
+
+object TtsVoiceDownloadFingerprint : Fingerprint(
+    strings = listOf("Downloaded voice "),
+)
