@@ -4,7 +4,7 @@
   "patches": [
     {
       "name": "Add English TTS voices",
-      "description": "Adds English piper voices to AI Audio Novel Reader by injecting a voice catalog for the English novel language mode (37 voices from rhasspy/piper-voices, downloaded on first use) and fetching the missing English espeak-ng phonemization data (~170 KB, one time). Vietnamese voices are not affected.",
+      "description": "Adds English piper voices to AI Audio Novel Reader by injecting a voice catalog for the English novel language mode (35 voices repackaged for sherpa-onnx, downloaded on first use) and fetching the missing English espeak-ng phonemization data (~170 KB, one time). Vietnamese voices are not affected.",
       "default": true,
       "dependencies": [],
       "compatiblePackages": [

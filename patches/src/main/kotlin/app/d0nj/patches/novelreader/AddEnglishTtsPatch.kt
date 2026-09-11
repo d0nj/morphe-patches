@@ -24,48 +24,46 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 
-private const val PIPER_BASE = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/"
+private const val PIPER_BASE = "https://huggingface.co/csukuangfj/"
 
 private const val ESPEAK_BASE = "https://raw.githubusercontent.com/d0nj/morphe-patches/main/espeak-ng-data/"
 
-private val piperModelPaths = listOf(
-    "en_US/amy/low/en_US-amy-low.onnx",
-    "en_US/amy/medium/en_US-amy-medium.onnx",
-    "en_US/arctic/medium/en_US-arctic-medium.onnx",
-    "en_US/bryce/medium/en_US-bryce-medium.onnx",
-    "en_US/danny/low/en_US-danny-low.onnx",
-    "en_US/hfc_female/medium/en_US-hfc_female-medium.onnx",
-    "en_US/hfc_male/medium/en_US-hfc_male-medium.onnx",
-    "en_US/joe/medium/en_US-joe-medium.onnx",
-    "en_US/john/medium/en_US-john-medium.onnx",
-    "en_US/kathleen/low/en_US-kathleen-low.onnx",
-    "en_US/kristin/medium/en_US-kristin-medium.onnx",
-    "en_US/kusal/medium/en_US-kusal-medium.onnx",
-    "en_US/l2arctic/medium/en_US-l2arctic-medium.onnx",
-    "en_US/lessac/high/en_US-lessac-high.onnx",
-    "en_US/lessac/low/en_US-lessac-low.onnx",
-    "en_US/lessac/medium/en_US-lessac-medium.onnx",
-    "en_US/libritts/high/en_US-libritts-high.onnx",
-    "en_US/libritts_r/medium/en_US-libritts_r-medium.onnx",
-    "en_US/ljspeech/high/en_US-ljspeech-high.onnx",
-    "en_US/ljspeech/medium/en_US-ljspeech-medium.onnx",
-    "en_US/norman/medium/en_US-norman-medium.onnx",
-    "en_US/reza_ibrahim/medium/en_US-reza_ibrahim-medium.onnx",
-    "en_US/ryan/high/en_US-ryan-high.onnx",
-    "en_US/ryan/low/en_US-ryan-low.onnx",
-    "en_US/ryan/medium/en_US-ryan-medium.onnx",
-    "en_US/sam/medium/en_US-sam-medium.onnx",
-    "en_GB/alan/low/en_GB-alan-low.onnx",
-    "en_GB/alan/medium/en_GB-alan-medium.onnx",
-    "en_GB/alba/medium/en_GB-alba-medium.onnx",
-    "en_GB/aru/medium/en_GB-aru-medium.onnx",
-    "en_GB/cori/high/en_GB-cori-high.onnx",
-    "en_GB/cori/medium/en_GB-cori-medium.onnx",
-    "en_GB/jenny_dioco/medium/en_GB-jenny_dioco-medium.onnx",
-    "en_GB/northern_english_male/medium/en_GB-northern_english_male-medium.onnx",
-    "en_GB/semaine/medium/en_GB-semaine-medium.onnx",
-    "en_GB/southern_english_female/low/en_GB-southern_english_female-low.onnx",
-    "en_GB/vctk/medium/en_GB-vctk-medium.onnx",
+private val piperModelIds = listOf(
+    "en_US-amy-low",
+    "en_US-amy-medium",
+    "en_US-arctic-medium",
+    "en_US-bryce-medium",
+    "en_US-danny-low",
+    "en_US-hfc_female-medium",
+    "en_US-hfc_male-medium",
+    "en_US-joe-medium",
+    "en_US-john-medium",
+    "en_US-kathleen-low",
+    "en_US-kristin-medium",
+    "en_US-kusal-medium",
+    "en_US-l2arctic-medium",
+    "en_US-lessac-high",
+    "en_US-lessac-low",
+    "en_US-lessac-medium",
+    "en_US-libritts-high",
+    "en_US-libritts_r-medium",
+    "en_US-ljspeech-high",
+    "en_US-ljspeech-medium",
+    "en_US-norman-medium",
+    "en_US-ryan-high",
+    "en_US-ryan-low",
+    "en_US-ryan-medium",
+    "en_GB-alan-low",
+    "en_GB-alan-medium",
+    "en_GB-alba-medium",
+    "en_GB-aru-medium",
+    "en_GB-cori-high",
+    "en_GB-cori-medium",
+    "en_GB-jenny_dioco-medium",
+    "en_GB-northern_english_male-medium",
+    "en_GB-semaine-medium",
+    "en_GB-southern_english_female-low",
+    "en_GB-vctk-medium",
 )
 
 private val espeakFiles = listOf(
@@ -92,26 +90,26 @@ private fun voiceDisplayName(model: String): String {
 
 private fun buildCatalogJson(): String = buildString {
     append("{\"version\":1,\"models\":[")
-    piperModelPaths.joinTo(this, ",") { path ->
-        catalogEntry(path, null)
+    piperModelIds.joinTo(this, ",") { modelId ->
+        catalogEntry(modelId, null)
     }
     append("]}")
 }
 
 private fun buildDupeEntriesJson(): String =
-    piperModelPaths.joinToString(",") { path ->
-        catalogEntry(path, "vi")
+    piperModelIds.joinToString(",") { modelId ->
+        catalogEntry(modelId, "vi")
     }
 
-private fun catalogEntry(path: String, languageOverride: String?): String {
-    val model = path.substringAfterLast('/')
-    val modelId = model.removeSuffix(".onnx")
+private fun catalogEntry(modelId: String, languageOverride: String?): String {
+    val model = "$modelId.onnx"
     val lang = languageOverride
         ?: if (model.startsWith("en_US")) "en-US" else "en-GB"
     val id = if (languageOverride == null) modelId else "$modelId-vi"
+    val fileUrl = "${PIPER_BASE}vits-piper-$modelId/resolve/main/$model"
     return "{\"id\":\"$id\",\"languageCode\":\"$lang\",\"displayName\":\"${voiceDisplayName(modelId)}\"," +
-        "\"fileName\":\"$model\",\"onnxUrl\":\"$PIPER_BASE$path\"," +
-        "\"jsonUrl\":\"$PIPER_BASE$path.json\",\"demoUrl\":\"\"}"
+        "\"fileName\":\"$model\",\"onnxUrl\":\"$fileUrl\"," +
+        "\"jsonUrl\":\"$fileUrl.json\",\"demoUrl\":\"\"}"
 }
 
 private fun buildEspeakBlock(downloaderRef: MethodReference): String = buildString {
@@ -143,7 +141,7 @@ private fun buildEspeakBlock(downloaderRef: MethodReference): String = buildStri
 val addEnglishTtsVoicesPatch = bytecodePatch(
     name = "Add English TTS voices",
     description = "Adds English piper voices to AI Audio Novel Reader by injecting a voice catalog " +
-        "for the English novel language mode (37 voices from rhasspy/piper-voices, downloaded on " +
+        "for the English novel language mode (35 voices repackaged for sherpa-onnx, downloaded on " +
         "first use) and fetching the missing English espeak-ng phonemization data (~170 KB, one " +
         "time). Vietnamese voices are not affected.",
     default = true,
