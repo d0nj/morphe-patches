@@ -1,3 +1,9 @@
+## [1.3.0](https://github.com/d0nj/morphe-patches/compare/v1.2.2...v1.3.0) (2026-09-11)
+
+### ✨ New Features
+
+* add English TTS voices for AI Audio Novel Reader ([72996c4](https://github.com/d0nj/morphe-patches/commit/72996c4ea7e310256c54708bf7c71418f26e398d))
+
 ## [1.2.2](https://github.com/d0nj/morphe-patches/compare/v1.2.1...v1.2.2) (2026-09-11)
 
 ### 🐛 Bug Fixes
