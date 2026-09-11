@@ -1,6 +1,7 @@
 package app.d0nj.patches.novelreader
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.removeInstruction
 import app.morphe.patcher.patch.AppTarget
@@ -8,11 +9,19 @@ import app.morphe.patcher.patch.Compatibility
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction11x
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction11n
 import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction21c
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction31i
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction35c
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 
 private const val PIPER_BASE = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/"
@@ -84,19 +93,30 @@ private fun voiceDisplayName(model: String): String {
 private fun buildCatalogJson(): String = buildString {
     append("{\"version\":1,\"models\":[")
     piperModelPaths.joinTo(this, ",") { path ->
-        val model = path.substringAfterLast('/')
-        val modelId = model.removeSuffix(".onnx")
-        val lang = if (model.startsWith("en_US")) "en-US" else "en-GB"
-        "{\"id\":\"$modelId\",\"languageCode\":\"$lang\",\"displayName\":\"${voiceDisplayName(modelId)}\"," +
-            "\"fileName\":\"$model\",\"onnxUrl\":\"$PIPER_BASE$path\"," +
-            "\"jsonUrl\":\"$PIPER_BASE$path.json\",\"demoUrl\":\"\"}"
+        catalogEntry(path, null)
     }
     append("]}")
 }
 
+private fun buildDupeEntriesJson(): String =
+    piperModelPaths.joinToString(",") { path ->
+        catalogEntry(path, "vi")
+    }
+
+private fun catalogEntry(path: String, languageOverride: String?): String {
+    val model = path.substringAfterLast('/')
+    val modelId = model.removeSuffix(".onnx")
+    val lang = languageOverride
+        ?: if (model.startsWith("en_US")) "en-US" else "en-GB"
+    val id = if (languageOverride == null) modelId else "$modelId-vi"
+    return "{\"id\":\"$id\",\"languageCode\":\"$lang\",\"displayName\":\"${voiceDisplayName(modelId)}\"," +
+        "\"fileName\":\"$model\",\"onnxUrl\":\"$PIPER_BASE$path\"," +
+        "\"jsonUrl\":\"$PIPER_BASE$path.json\",\"demoUrl\":\"\"}"
+}
+
 private fun buildEspeakBlock(downloaderRef: MethodReference): String = buildString {
     append("new-instance v0, Ljava/io/File;\n")
-    append("invoke-virtual {p0}, Landroid/content/Context;->getFilesDir()Ljava/io/File;\n")
+    append("invoke-virtual {p1}, Landroid/content/Context;->getFilesDir()Ljava/io/File;\n")
     append("move-result-object v1\n")
     append("const-string v2, \"tts_voices/espeak-ng-data\"\n")
     append("invoke-direct {v0, v1, v2}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V\n")
@@ -112,7 +132,7 @@ private fun buildEspeakBlock(downloaderRef: MethodReference): String = buildStri
         append("if-eqz v3, :espeak_skip_$index\n")
         append("invoke-virtual {v3}, Ljava/io/File;->mkdirs()Z\n")
         append("const-string v4, \"$ESPEAK_BASE$relPath\"\n")
-        append("invoke-static {p0, v1, v4}, ${downloaderRef.definingClass}->${downloaderRef.name}" +
+        append("invoke-static {p1, v1, v4}, ${downloaderRef.definingClass}->${downloaderRef.name}" +
             "(${downloaderRef.parameterTypes.joinToString("")})${downloaderRef.returnType}\n")
         append(":espeak_skip_$index\n")
     }
@@ -143,6 +163,28 @@ val addEnglishTtsVoicesPatch = bytecodePatch(
         val catalogMethod = TtsCatalogLoadFingerprint.method
         val catalogInstructions = catalogMethod.implementation!!.instructions.toList()
 
+        val downloaderRef = catalogInstructions
+            .asSequence()
+            .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+            .firstOrNull {
+                it.returnType == "Z" &&
+                    it.parameterTypes == listOf("Landroid/content/Context;", "Ljava/io/File;", "Ljava/lang/String;")
+            }
+            ?: run {
+                TtsCatalogLoadFingerprint.originalClassDef.methods
+                    .asSequence()
+                    .flatMap { it.implementation?.instructions?.toList() ?: emptyList() }
+                    .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+                    .firstOrNull {
+                        it.returnType == "Z" && it.parameterTypes == listOf(
+                            "Landroid/content/Context;",
+                            "Ljava/io/File;",
+                            "Ljava/lang/String;",
+                        )
+                    }
+            }
+            ?: throw PatchException("Could not find the TTS voice downloader method")
+
         val anchorIndex = catalogInstructions.indexOfFirst { instruction ->
             (instruction as? ReferenceInstruction)?.reference is StringReference &&
                 ((instruction as ReferenceInstruction).reference as StringReference).string == " TTS config available yet"
@@ -170,26 +212,148 @@ val addEnglishTtsVoicesPatch = bytecodePatch(
             ),
         )
 
-        val downloadMethod = TtsVoiceDownloadFingerprint.method
-        val downloadInstructions = downloadMethod.implementation!!.instructions.toList()
-
-        val downloaderRef = downloadInstructions
-            .asSequence()
-            .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
-            .firstOrNull {
-                it.returnType == "Z" &&
-                    it.parameterTypes == listOf("Landroid/content/Context;", "Ljava/io/File;", "Ljava/lang/String;")
-            }
-            ?: throw PatchException("Could not find the TTS voice downloader method")
-
-        val localRegisters = downloadMethod.implementation!!.registerCount - downloadMethod.parameters.size
+        val localRegisters = catalogMethod.implementation!!.registerCount - catalogMethod.parameters.size
         if (localRegisters < 5) {
             throw PatchException(
-                "The TTS voice download method has too few local registers: $localRegisters",
+                "The TTS catalog load method has too few local registers: $localRegisters",
             )
         }
 
-        val insertIndex = downloadInstructions.size - 1
-        downloadMethod.addInstructionsWithLabels(insertIndex, buildEspeakBlock(downloaderRef))
+        val isEmptyCheckIndex = catalogInstructions.drop(emptyStringIndex + 1).indexOfFirst { instruction ->
+            if (instruction.opcode != Opcode.INVOKE_STATIC) return@indexOfFirst false
+            val reference = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+                ?: return@indexOfFirst false
+            reference.returnType == "Z" &&
+                reference.parameterTypes == listOf("Ljava/lang/CharSequence;")
+        }.let { if (it == -1) -1 else emptyStringIndex + 1 + it }
+        if (isEmptyCheckIndex < 0) {
+            throw PatchException("Could not find the TTS config empty check")
+        }
+
+        val dupeEntries = buildDupeEntriesJson()
+        val searchPatterns = listOf("\"models\":[", "\"models\": [", "\"models\" : [")
+        val replaceProto = "\"models\": [$dupeEntries, "
+        val stringReplace = ImmutableMethodReference(
+            "Ljava/lang/String;",
+            "replace",
+            listOf("Ljava/lang/CharSequence;", "Ljava/lang/CharSequence;"),
+            "Ljava/lang/String;",
+        )
+        var spliceIndex = isEmptyCheckIndex
+        for (pattern in searchPatterns) {
+            catalogMethod.implementation!!.addInstruction(
+                spliceIndex++,
+                BuilderInstruction21c(
+                    Opcode.CONST_STRING,
+                    3,
+                    ImmutableStringReference(pattern),
+                ),
+            )
+            catalogMethod.implementation!!.addInstruction(
+                spliceIndex++,
+                BuilderInstruction21c(
+                    Opcode.CONST_STRING,
+                    5,
+                    ImmutableStringReference(replaceProto),
+                ),
+            )
+            catalogMethod.implementation!!.addInstruction(
+                spliceIndex++,
+                BuilderInstruction35c(
+                    Opcode.INVOKE_VIRTUAL,
+                    3,
+                    2,
+                    3,
+                    5,
+                    0,
+                    0,
+                    stringReplace,
+                ),
+            )
+            catalogMethod.implementation!!.addInstruction(
+                spliceIndex++,
+                BuilderInstruction11x(Opcode.MOVE_RESULT_OBJECT, 2),
+            )
+        }
+        catalogMethod.implementation!!.addInstruction(
+            spliceIndex,
+            BuilderInstruction11n(Opcode.CONST_4, 3, 0),
+        )
+
+        catalogMethod.addInstructionsWithLabels(0, buildEspeakBlock(downloaderRef))
+
+        val clientField = classDefBy(downloaderRef.definingClass).methods
+            .asSequence()
+            .flatMap { it.implementation?.instructions?.toList() ?: emptyList() }
+            .mapNotNull { instruction ->
+                if (instruction.opcode != Opcode.SPUT_OBJECT) return@mapNotNull null
+                ((instruction as ReferenceInstruction).reference as? FieldReference)
+                    ?.takeIf { it.definingClass == downloaderRef.definingClass }
+            }
+            .firstOrNull()
+            ?: throw PatchException("Could not find the HTTP client field in the TTS downloader")
+        val clientType = clientField.type
+        val clientInit = classDefBy(clientType).methods
+            .singleOrNull { it.name == "<init>" && it.parameterTypes.size == 1 }
+            ?: throw PatchException("Could not find the HTTP client constructor")
+        val builderType = clientInit.parameterTypes[0] as String
+
+        val builderInit = classDefBy(builderType).methods
+            .singleOrNull { it.name == "<init>" && it.parameterTypes.isEmpty() }
+            ?: throw PatchException("Could not find the HTTP builder constructor")
+        val mutableBuilderInit = mutableClassDefBy(builderType).methods
+            .single { it.name == "<init>" && it.parameterTypes == builderInit.parameterTypes }
+        val builderInitInstructions = builderInit.implementation!!.instructions.toList()
+        val timeoutFields = mutableListOf<String>()
+        var timeoutRegister = -1
+        for (instruction in builderInitInstructions) {
+            if (instruction.opcode == Opcode.IPUT) {
+                val field = ((instruction as ReferenceInstruction).reference as? FieldReference)
+                    ?.takeIf { it.definingClass == builderType && it.type == "I" }
+                if (field != null &&
+                    (instruction as TwoRegisterInstruction).registerA == timeoutRegister
+                ) {
+                    timeoutFields.add(field.name)
+                }
+                continue
+            }
+            if (instruction is OneRegisterInstruction) {
+                if (instruction.opcode == Opcode.CONST_16 &&
+                    (instruction as NarrowLiteralInstruction).narrowLiteral == 10000
+                ) {
+                    timeoutRegister = instruction.registerA
+                } else if (instruction.registerA == timeoutRegister) {
+                    timeoutRegister = -1
+                }
+                continue
+            }
+            if (instruction is TwoRegisterInstruction) {
+                when (instruction.opcode) {
+                    Opcode.IGET, Opcode.IGET_WIDE, Opcode.IGET_OBJECT, Opcode.IGET_BOOLEAN,
+                    Opcode.IGET_BYTE, Opcode.IGET_CHAR, Opcode.IGET_SHORT, Opcode.AGET,
+                    Opcode.AGET_WIDE, Opcode.AGET_OBJECT, Opcode.AGET_BOOLEAN, Opcode.AGET_BYTE,
+                    Opcode.AGET_CHAR, Opcode.AGET_SHORT,
+                    -> if (instruction.registerA == timeoutRegister) timeoutRegister = -1
+                    else -> {}
+                }
+            }
+        }
+        if (timeoutFields.size != 3) {
+            throw PatchException(
+                "Expected 3 HTTP timeout fields, found ${timeoutFields.size}: $timeoutFields",
+            )
+        }
+
+        val timeoutConstIndex = builderInitInstructions.indexOfFirst { instruction ->
+            instruction.opcode == Opcode.CONST_16 &&
+                (instruction as NarrowLiteralInstruction).narrowLiteral == 10000
+        }
+        val timeoutConst = builderInitInstructions[timeoutConstIndex] as OneRegisterInstruction
+        mutableBuilderInit.implementation!!.replaceInstruction(
+            timeoutConstIndex,
+            BuilderInstruction31i(Opcode.CONST, timeoutConst.registerA, HTTP_TIMEOUT_MS),
+        )
     }
 }
+
+private const val HTTP_TIMEOUT_MS = 600000
