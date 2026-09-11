@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/d0nj/morphe-patches/compare/v1.2.0...v1.2.1) (2026-09-11)
+
+### 🐛 Bug Fixes
+
+* anchor Unlock Pro fingerprint to the niagarald account record ([90b09ec](https://github.com/d0nj/morphe-patches/commit/90b09ec17535348dfb01ebb9987ffd7a00be4020))
+* suppress Channels diagnostic tip rendering as giant numbers on home feed ([f5db2c3](https://github.com/d0nj/morphe-patches/commit/f5db2c37a6d555fbe59b1eeffdc906a19e9b1d37))
+
 ## [1.2.0](https://github.com/d0nj/morphe-patches/compare/v1.1.0...v1.2.0) (2026-09-10)
 
 ### ✨ New Features
