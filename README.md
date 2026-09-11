@@ -7,18 +7,7 @@ Patches for apps I use, built with [Morphe](https://morphe.software).
 ## 🩹 Patches list
 
 <!-- PATCHES_START EXPANDED -->
-> **[v1.3.0](https://github.com/d0nj/morphe-patches/releases/tag/v1.3.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;5 patches total
-<details open>
-<summary>📦 AI Audio Novel Reader&nbsp;&nbsp;•&nbsp;&nbsp;2 patches</summary>
-<br>
-
-| 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
-|----------|----------------|-----------|
-| [Add English TTS voices](#add-english-tts-voices) | Adds English piper voices to AI Audio Novel Reader by injecting a voice catalog for the English novel language mode (37 voices from rhasspy/piper-voices, downloaded on first use) and fetching the missing English espeak-ng phonemization data (~170 KB, one time). Vietnamese voices are not affected. |  |
-| [Unlock premium](#unlock-premium) | Makes isPremium() always return true in AI Audio Novel Reader. Unlocks all premium features and disables the 10-hour trial countdown. |  |
-
-</details>
-
+> **[v1.3.0](https://github.com/d0nj/morphe-patches/releases/tag/v1.3.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;4 patches total
 <details open>
 <summary>📦 Niagara Launcher&nbsp;&nbsp;•&nbsp;&nbsp;3 patches</summary>
 <br>
@@ -28,6 +17,16 @@ Patches for apps I use, built with [Morphe](https://morphe.software).
 | [Fix home screen numbers tile](#fix-home-screen-numbers-tile) | Niagara's Channels feature registers a diagnostic tip whose message is a giant fingerprint of concatenated hashCode() integers of up to 30 channel items (~850 digits). Because the provider accepts every tip request, this shows up as a tile of giant numbers on the home feed whenever the channel list refreshes, which happens when apps are installed, updated or removed (for example through ADB). Makes the provider decline tip requests so the diagnostic tip is never shown. |  |
 | [Remove analytics](#remove-analytics) | Disables all telemetry in Niagara Launcher: the weekly usage-report upload (app launches, notification metadata, survey responses), retention milestone events, GDPR consent sync, Singular attribution sessions and events (advertising ID, app set ID, install referrer, FCM token) and the runtime Firebase Analytics opt-in. |  |
 | [Unlock Pro](#unlock-pro) | Makes the entitlement holder always report Pro in Niagara Launcher. Unlocks all Pro features and bypasses the 7-day trial prompt. Server-backed features (account sync, Stripe checkout) are not affected. |  |
+
+</details>
+
+<details open>
+<summary>📦 AI Audio Novel Reader&nbsp;&nbsp;•&nbsp;&nbsp;1 patch</summary>
+<br>
+
+| 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
+|----------|----------------|-----------|
+| [Unlock premium](#unlock-premium) | Makes isPremium() always return true in AI Audio Novel Reader. Unlocks all premium features and disables the 10-hour trial countdown. |  |
 
 </details>
 
