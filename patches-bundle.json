@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-09-11T01:22:53",
-  "description": "## [1.2.1](https://github.com/d0nj/morphe-patches/compare/v1.2.0...v1.2.1) (2026-09-11)\n\n### 🐛 Bug Fixes\n\n* anchor Unlock Pro fingerprint to the niagarald account record ([90b09ec](https://github.com/d0nj/morphe-patches/commit/90b09ec17535348dfb01ebb9987ffd7a00be4020))\n* suppress Channels diagnostic tip rendering as giant numbers on home feed ([f5db2c3](https://github.com/d0nj/morphe-patches/commit/f5db2c37a6d555fbe59b1eeffdc906a19e9b1d37))",
-  "download_url": "https://github.com/d0nj/morphe-patches/releases/download/v1.2.1/patches-1.2.1.mpp",
+  "created_at": "2026-09-11T01:54:56",
+  "description": "## [1.2.2](https://github.com/d0nj/morphe-patches/compare/v1.2.1...v1.2.2) (2026-09-11)\n\n### 🐛 Bug Fixes\n\n* allow Unlock premium patch on any NovelReader version ([e4ce242](https://github.com/d0nj/morphe-patches/commit/e4ce242a00f1fa5cce25e0c1ec2a86b1bae8b483))",
+  "download_url": "https://github.com/d0nj/morphe-patches/releases/download/v1.2.2/patches-1.2.2.mpp",
   "signature_download_url": "",
-  "version": "1.2.1"
+  "version": "1.2.2"
 }

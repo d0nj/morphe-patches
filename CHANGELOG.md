@@ -1,3 +1,9 @@
+## [1.2.2](https://github.com/d0nj/morphe-patches/compare/v1.2.1...v1.2.2) (2026-09-11)
+
+### 🐛 Bug Fixes
+
+* allow Unlock premium patch on any NovelReader version ([e4ce242](https://github.com/d0nj/morphe-patches/commit/e4ce242a00f1fa5cce25e0c1ec2a86b1bae8b483))
+
 ## [1.2.1](https://github.com/d0nj/morphe-patches/compare/v1.2.0...v1.2.1) (2026-09-11)
 
 ### 🐛 Bug Fixes
