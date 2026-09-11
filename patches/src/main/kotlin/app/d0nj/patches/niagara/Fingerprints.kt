@@ -7,16 +7,19 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 
-object EntitlementTripleFingerprint : Fingerprint(
-    definingClass = "Lb",
+object AccountRecordFingerprint : Fingerprint(
     name = "<init>",
     accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.CONSTRUCTOR),
     returnType = "V",
-    parameters = listOf("Z", "Z", "Z"),
-    custom = fun(_: Method, classDef: ClassDef) =
-        classDef.fields.count { it.type == "Z" } == 3 &&
-            classDef.fields.count() == 3 &&
-            classDef.methods.any { it.name == "equals" },
+    custom = fun(method: Method, classDef: ClassDef): Boolean {
+        val params = method.parameterTypes
+        if (params.size != 5) return false
+        if (params[0] != "Ljava/util/UUID;") return false
+        if (params[1] != "Ljava/lang/String;" || params[2] != "Ljava/lang/String;") return false
+        if (!(params[4] as String).startsWith("Lcom/auth0/android/jwt/")) return false
+        if (classDef.type.startsWith("Lcom/auth0/android/jwt/")) return false
+        return classDef.fields.any { it.type == params[3] }
+    },
 )
 
 object UsageReportUploadWorkFingerprint : Fingerprint(

@@ -1,10 +1,11 @@
 package app.d0nj.patches.niagara
 
+import app.d0nj.patches.shared.clearBody
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.AppTarget
 import app.morphe.patcher.patch.Compatibility
+import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
-import app.d0nj.patches.shared.clearBody
 
 @Suppress("unused")
 val unlockProPatch = bytecodePatch(
@@ -24,20 +25,42 @@ val unlockProPatch = bytecodePatch(
     )
 
     execute {
-        val classType = EntitlementTripleFingerprint.originalClassDef.type
-        val booleanFields = EntitlementTripleFingerprint.originalClassDef.fields
-            .filter { it.type == "Z" }
-        val fieldWrites = booleanFields.joinToString("\n") { field ->
-            "iput-boolean p1, p0, $classType->${field.name}:Z"
+        val recordConstructor = AccountRecordFingerprint.method
+        val tripleType = recordConstructor.parameterTypes[3] as String
+
+        val tripleClassDef = classDefByOrNull(tripleType)
+            ?: throw PatchException("Account flags class $tripleType is not present in the APK")
+
+        val booleanFields = tripleClassDef.fields.filter { it.type == "Z" }
+        val looksLikeFlagsTriple = booleanFields.size == 3 &&
+            tripleClassDef.fields.count() == 3 &&
+            tripleClassDef.methods.any { it.name == "equals" } &&
+            tripleClassDef.methods.any {
+                it.name == "<init>" && it.parameterTypes == listOf("Z", "Z", "Z")
+            }
+        if (!looksLikeFlagsTriple) {
+            throw PatchException(
+                "Class $tripleType does not look like the account flags triple: expected exactly " +
+                    "three boolean fields, an equals method and a (Z,Z,Z) constructor",
+            )
         }
-        EntitlementTripleFingerprint.method.apply {
+
+        val tripleClass = mutableClassDefBy(tripleClassDef)
+        val constructor = tripleClass.methods
+            .single { it.name == "<init>" && it.parameterTypes == listOf("Z", "Z", "Z") }
+
+        constructor.apply {
             clearBody()
             addInstructions(
                 0,
-                "invoke-direct {p0}, Ljava/lang/Object;-><init>()V\n" +
-                    "const/4 p1, 0x1\n" +
-                    fieldWrites +
-                    "\nreturn-void",
+                buildString {
+                    append("invoke-direct {p0}, Ljava/lang/Object;-><init>()V\n")
+                    append("const/4 p1, 0x1\n")
+                    booleanFields.forEach { field ->
+                        append("iput-boolean p1, p0, $tripleType->${field.name}:Z\n")
+                    }
+                    append("return-void")
+                },
             )
         }
     }
