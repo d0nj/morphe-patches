@@ -7,17 +7,17 @@ Patches for apps I use, built with [Morphe](https://morphe.software).
 ## 🩹 Patches list
 
 <!-- PATCHES_START EXPANDED -->
-> **[v1.4.0](https://github.com/d0nj/morphe-patches/releases/tag/v1.4.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;5 patches total
+> **[v1.4.1](https://github.com/d0nj/morphe-patches/releases/tag/v1.4.1)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;5 patches total
 <details open>
 <summary>📦 Niagara Launcher&nbsp;&nbsp;•&nbsp;&nbsp;4 patches</summary>
 <br>
 
 | 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
 |----------|----------------|-----------|
-| [Fix home screen numbers tile](#fix-home-screen-numbers-tile) | Niagara's Channels feature registers a diagnostic tip whose message is a giant fingerprint of concatenated hashCode() integers of up to 30 channel items (~850 digits). Because the provider accepts every tip request, this shows up as a tile of giant numbers on the home feed whenever the channel list refreshes, which happens when apps are installed, updated or removed (for example through ADB). Makes the provider decline tip requests so the diagnostic tip is never shown. |  |
-| [Remove analytics](#remove-analytics) | Disables all telemetry in Niagara Launcher: the weekly usage-report upload (app launches, notification metadata, survey responses), retention milestone events, GDPR consent sync, Singular attribution sessions and events (advertising ID, app set ID, install referrer, FCM token) and the runtime Firebase Analytics opt-in. |  |
+| [Fix home screen numbers tile](#fix-home-screen-numbers-tile) | Stops a Channels diagnostic tip from rendering as a tile of giant numbers on the home feed. |  |
+| [Remove analytics](#remove-analytics) | Disables Niagara's usage-report uploads, retention events and analytics SDK sessions. |  |
 | [Unlock Pro](#unlock-pro) | Makes the entitlement holder always report Pro in Niagara Launcher. Unlocks all Pro features and bypasses the 7-day trial prompt. Server-backed features (account sync, Stripe checkout) are not affected. |  |
-| [Use Open-Meteo for weather](#use-open-meteo-for-weather) | Replaces Niagara's account-gated weather backend with the keyless Open-Meteo API. Weather no longer depends on a Niagara account session, which is what made the at-a-glance tile fail with NoWeatherDataException 'st missing' when nobody was signed in. The response is re-encoded into Niagara's existing forecast format, so the cache, refresh timer and tile rendering are unchanged. |  |
+| [Use Open-Meteo for weather](#use-open-meteo-for-weather) | Fetches weather from the free Open-Meteo API instead of Niagara's, so the at-a-glance tile works without an account. |  |
 
 </details>
 

@@ -1,3 +1,9 @@
+## [1.4.1](https://github.com/d0nj/morphe-patches/compare/v1.4.0...v1.4.1) (2026-11-01)
+
+### 🐛 Bug Fixes
+
+* shorten patch descriptions ([4e9d8cd](https://github.com/d0nj/morphe-patches/commit/4e9d8cd12b84029a3d77f599832d9818b517bc46))
+
 ## [1.4.0](https://github.com/d0nj/morphe-patches/compare/v1.3.1...v1.4.0) (2026-11-01)
 
 ### ✨ New Features
