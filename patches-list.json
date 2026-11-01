@@ -1,6 +1,6 @@
 {
   "NOTE": "Do NOT manually edit this file. This file is automatically updated when semantic release (release.yml) runs. Manually editing this file can break your releases and break third party tools that use this file.",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "patches": [
     {
       "name": "Fix home screen numbers tile",
@@ -92,6 +92,32 @@
           "description": null,
           "apkFileType": null,
           "appIconColor": "#6200EE",
+          "signatures": null,
+          "targets": [
+            {
+              "version": null,
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Use Open-Meteo for weather",
+      "description": "Replaces Niagara's account-gated weather backend with the keyless Open-Meteo API. Weather no longer depends on a Niagara account session, which is what made the at-a-glance tile fail with NoWeatherDataException 'st missing' when nobody was signed in. The response is re-encoded into Niagara's existing forecast format, so the cache, refresh timer and tile rendering are unchanged.",
+      "default": true,
+      "dependencies": [],
+      "compatiblePackages": [
+        {
+          "packageName": "bitpit.launcher",
+          "name": "Niagara Launcher",
+          "description": null,
+          "apkFileType": null,
+          "appIconColor": "#1E88E5",
           "signatures": null,
           "targets": [
             {
