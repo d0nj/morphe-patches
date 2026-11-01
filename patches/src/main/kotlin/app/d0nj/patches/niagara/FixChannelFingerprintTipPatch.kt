@@ -17,12 +17,8 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 @Suppress("unused")
 val fixChannelFingerprintTipPatch = bytecodePatch(
     name = "Fix home screen numbers tile",
-    description = "Niagara's Channels feature registers a diagnostic tip whose message is a giant " +
-        "fingerprint of concatenated hashCode() integers of up to 30 channel items (~850 digits). " +
-        "Because the provider accepts every tip request, this shows up as a tile of giant numbers on " +
-        "the home feed whenever the channel list refreshes, which happens when apps are installed, " +
-        "updated or removed (for example through ADB). Makes the provider decline tip requests so the " +
-        "diagnostic tip is never shown.",
+    description = "Stops a Channels diagnostic tip from rendering as a tile of " +
+        "giant numbers on the home feed.",
     default = true,
 ) {
     compatibleWith(

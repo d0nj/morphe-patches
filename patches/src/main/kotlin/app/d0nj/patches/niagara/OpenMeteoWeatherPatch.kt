@@ -21,11 +21,8 @@ private const val WEATHER_REPOSITORY = "Lb/ajHlrBTP7J0VEvJDPHhJQ19Pqu5;"
 @Suppress("unused")
 val openMeteoWeatherPatch = bytecodePatch(
     name = "Use Open-Meteo for weather",
-    description = "Replaces Niagara's account-gated weather backend with the keyless Open-Meteo API. " +
-        "Weather no longer depends on a Niagara account session, which is what made the " +
-        "at-a-glance tile fail with NoWeatherDataException 'st missing' when nobody was signed in. " +
-        "The response is re-encoded into Niagara's existing forecast format, so the cache, refresh " +
-        "timer and tile rendering are unchanged.",
+    description = "Fetches weather from the free Open-Meteo API instead of Niagara's, " +
+        "so the at-a-glance tile works without an account.",
     default = true,
 ) {
     compatibleWith(

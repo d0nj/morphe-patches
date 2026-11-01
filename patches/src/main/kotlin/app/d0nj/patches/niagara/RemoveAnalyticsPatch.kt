@@ -9,11 +9,8 @@ import app.d0nj.patches.shared.clearBody
 @Suppress("unused")
 val removeAnalyticsPatch = bytecodePatch(
     name = "Remove analytics",
-    description = "Disables all telemetry in Niagara Launcher: the weekly usage-report " +
-        "upload (app launches, notification metadata, survey responses), retention " +
-        "milestone events, GDPR consent sync, Singular attribution sessions and events " +
-        "(advertising ID, app set ID, install referrer, FCM token) and the runtime " +
-        "Firebase Analytics opt-in.",
+    description = "Disables Niagara's usage-report uploads, retention events " +
+        "and analytics SDK sessions.",
     default = true,
 ) {
     compatibleWith(
