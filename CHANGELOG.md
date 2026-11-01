@@ -1,3 +1,9 @@
+## [1.5.0](https://github.com/d0nj/morphe-patches/compare/v1.4.2...v1.5.0) (2026-11-01)
+
+### ✨ New Features
+
+* add Firefox Nightly branding patch ([cdcb33a](https://github.com/d0nj/morphe-patches/commit/cdcb33a40029115cf201f99ebad4b7d9ce91e3b8))
+
 ## [1.4.2](https://github.com/d0nj/morphe-patches/compare/v1.4.1...v1.4.2) (2026-11-01)
 
 ### 🐛 Bug Fixes
