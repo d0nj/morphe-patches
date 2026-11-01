@@ -1,3 +1,9 @@
+## [1.4.2](https://github.com/d0nj/morphe-patches/compare/v1.4.1...v1.4.2) (2026-11-01)
+
+### 🐛 Bug Fixes
+
+* locate the weather fetch structurally across Niagara versions ([6b56547](https://github.com/d0nj/morphe-patches/commit/6b565477f2e093116a32d097babce47ccc357d94))
+
 ## [1.4.1](https://github.com/d0nj/morphe-patches/compare/v1.4.0...v1.4.1) (2026-11-01)
 
 ### 🐛 Bug Fixes
