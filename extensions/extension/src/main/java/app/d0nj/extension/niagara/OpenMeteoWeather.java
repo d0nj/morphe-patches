@@ -15,6 +15,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * Fetches Open-Meteo and re-encodes the result as the OpenWeatherMap One Call
@@ -45,17 +48,13 @@ public final class OpenMeteoWeather {
             return FAILED;
         }
         try {
-            Field[] floats = floatFields(coordinates.getClass());
-            if (floats.length < 2) {
+            float[] latLon = latLonOf(coordinates);
+            if (latLon == null) {
                 android.util.Log.e("OpenMeteoWeather", "no float fields on " + coordinates.getClass());
                 return FAILED;
             }
-            float first = floats[0].getFloat(coordinates);
-            float second = floats[1].getFloat(coordinates);
-            // getDeclaredFields() order is unspecified; latitude is bounded to
-            // +/-90 so a swap is detectable.
-            final float lat = Math.abs(first) > 90f ? second : first;
-            final float lon = Math.abs(first) > 90f ? first : second;
+            final float lat = latLon[0];
+            final float lon = latLon[1];
             android.util.Log.i("OpenMeteoWeather", "coords " + lat + "," + lon);
             String result = fetchOffMain(lat, lon);
             android.util.Log.i("OpenMeteoWeather", "result length: " + (result == null ? -1 : result.length()));
@@ -122,22 +121,48 @@ public final class OpenMeteoWeather {
         }
     }
 
+    /**
+     * Reads latitude and longitude from a Niagara coordinates object. Field
+     * names are matched first because {@code getDeclaredFields()} order is
+     * unspecified and varies between runs; the +/-90 bound is only a fallback
+     * for obfuscated fields, and it cannot tell the pair apart when both
+     * values fall inside it.
+     */
+    private static float[] latLonOf(Object coordinates) throws Exception {
+        Field[] floats = floatFields(coordinates.getClass());
+        if (floats.length < 2) {
+            return null;
+        }
+        Field latitude = null;
+        Field longitude = null;
+        for (Field field : floats) {
+            String name = field.getName().toLowerCase(Locale.ROOT);
+            if (latitude == null && name.startsWith("lat")) {
+                latitude = field;
+            } else if (longitude == null && name.startsWith("lon")) {
+                longitude = field;
+            }
+        }
+        if (latitude != null && longitude != null) {
+            return new float[] { latitude.getFloat(coordinates), longitude.getFloat(coordinates) };
+        }
+        float first = floats[0].getFloat(coordinates);
+        float second = floats[1].getFloat(coordinates);
+        return Math.abs(first) > 90f
+            ? new float[] { second, first }
+            : new float[] { first, second };
+    }
+
     private static Field[] floatFields(Class<?> type) {
-        Field[] all = type.getDeclaredFields();
-        Field first = null;
-        Field second = null;
-        for (Field field : all) {
+        List<Field> floats = new ArrayList<>();
+        for (Field field : type.getDeclaredFields()) {
             if (field.getType() != float.class) {
                 continue;
             }
             field.setAccessible(true);
-            if (first == null) {
-                first = field;
-            } else if (second == null) {
-                second = field;
-            }
+            floats.add(field);
         }
-        return first == null || second == null ? new Field[0] : new Field[] { first, second };
+        return floats.toArray(new Field[0]);
     }
 
     /**
