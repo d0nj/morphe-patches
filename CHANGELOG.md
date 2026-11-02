@@ -1,3 +1,9 @@
+## [1.6.1-dev.1](https://github.com/d0nj/morphe-patches/compare/v1.6.0...v1.6.1-dev.1) (2026-11-02)
+
+### 🐛 Bug Fixes
+
+* use hourly daylight flags for weather icons ([2c0dd58](https://github.com/d0nj/morphe-patches/commit/2c0dd58e105bd9004bd8049e5a9ed24b526577b6))
+
 ## [1.6.0](https://github.com/d0nj/morphe-patches/compare/v1.5.0...v1.6.0) (2026-11-02)
 
 ### ✨ New Features
