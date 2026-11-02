@@ -1,3 +1,9 @@
+## [1.6.1-dev.3](https://github.com/d0nj/morphe-patches/compare/v1.6.1-dev.2...v1.6.1-dev.3) (2026-11-02)
+
+### 🐛 Bug Fixes
+
+* retry weather fetch on upstream overload ([b6b61cb](https://github.com/d0nj/morphe-patches/commit/b6b61cb38e251eac134fa4f75b0c4b8b6a99bff5))
+
 ## [1.6.1-dev.2](https://github.com/d0nj/morphe-patches/compare/v1.6.1-dev.1...v1.6.1-dev.2) (2026-11-02)
 
 ### 🐛 Bug Fixes

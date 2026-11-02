@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-11-02T15:38:27",
-  "description": "## [1.6.1-dev.2](https://github.com/d0nj/morphe-patches/compare/v1.6.1-dev.1...v1.6.1-dev.2) (2026-11-02)\n\n### 🐛 Bug Fixes\n\n* read weather coordinates by field name ([3631ffc](https://github.com/d0nj/morphe-patches/commit/3631ffce49117fccd488630b5f93677e0bbeacdb))",
-  "download_url": "https://github.com/d0nj/morphe-patches/releases/download/v1.6.1-dev.2/patches-1.6.1-dev.2.mpp",
+  "created_at": "2026-11-02T15:44:56",
+  "description": "## [1.6.1-dev.3](https://github.com/d0nj/morphe-patches/compare/v1.6.1-dev.2...v1.6.1-dev.3) (2026-11-02)\n\n### 🐛 Bug Fixes\n\n* retry weather fetch on upstream overload ([b6b61cb](https://github.com/d0nj/morphe-patches/commit/b6b61cb38e251eac134fa4f75b0c4b8b6a99bff5))",
+  "download_url": "https://github.com/d0nj/morphe-patches/releases/download/v1.6.1-dev.3/patches-1.6.1-dev.3.mpp",
   "signature_download_url": "",
-  "version": "1.6.1-dev.2"
+  "version": "1.6.1-dev.3"
 }
