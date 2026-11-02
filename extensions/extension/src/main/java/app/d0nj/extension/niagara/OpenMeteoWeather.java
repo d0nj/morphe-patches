@@ -173,6 +173,7 @@ public final class OpenMeteoWeather {
         try {
             return request(lat, lon);
         } catch (Exception e) {
+            android.util.Log.e("OpenMeteoWeather", "fetch failed", e);
             return null;
         }
     }
@@ -186,19 +187,33 @@ public final class OpenMeteoWeather {
             + "&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,weather_code"
             + "&timezone=auto&forecast_days=7";
 
-        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-        connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
-        connection.setReadTimeout(READ_TIMEOUT_MS);
-        connection.setRequestProperty("Accept", "application/json");
-        connection.setRequestProperty("User-Agent", USER_AGENT);
-        try {
-            if (connection.getResponseCode() != 200) {
-                return null;
+        // The free API answers 5xx "service is overloaded" under load; a short
+        // retry keeps the widget from dropping to the fallback on a blip.
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            if (attempt > 1) {
+                Thread.sleep(1_000L);
             }
-            return encode(read(connection.getInputStream()), lat, lon);
-        } finally {
-            connection.disconnect();
+            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+            connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
+            connection.setReadTimeout(READ_TIMEOUT_MS);
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setRequestProperty("User-Agent", USER_AGENT);
+            try {
+                int status = connection.getResponseCode();
+                if (status == 200) {
+                    return encode(read(connection.getInputStream()), lat, lon);
+                }
+                android.util.Log.e("OpenMeteoWeather", "http " + status + " (attempt " + attempt + ")");
+                if (status < 500) {
+                    return null;
+                }
+            } catch (Exception e) {
+                android.util.Log.e("OpenMeteoWeather", "request attempt " + attempt + " failed", e);
+            } finally {
+                connection.disconnect();
+            }
         }
+        return null;
     }
 
     private static String read(InputStream stream) throws Exception {
