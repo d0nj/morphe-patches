@@ -7,14 +7,16 @@ Patches for apps I use, built with [Morphe](https://morphe.software).
 ## 🩹 Patches list
 
 <!-- PATCHES_START EXPANDED -->
-> **[v1.5.0](https://github.com/d0nj/morphe-patches/releases/tag/v1.5.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;6 patches total
+> **[v1.6.0](https://github.com/d0nj/morphe-patches/releases/tag/v1.6.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;8 patches total
 <details open>
-<summary>📦 Firefox&nbsp;&nbsp;•&nbsp;&nbsp;1 patch</summary>
+<summary>📦 Firefox&nbsp;&nbsp;•&nbsp;&nbsp;3 patches</summary>
 <br>
 
 | 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
 |----------|----------------|-----------|
-| [Firefox Nightly branding](#firefox-nightly-branding) | Replaces the Firefox launcher icon and in-app wordmark with the Nightly ones and renames the app to Firefox Nightly. |  |
+| [Firefox Nightly app name](#firefox-nightly-app-name) | Renames the app to Firefox Nightly, or to a name of your own. | • App name |
+| [Firefox Nightly icon](#firefox-nightly-icon) | Swaps the launcher icon for the Nightly one. |  |
+| [Firefox Nightly in-app logo](#firefox-nightly-in-app-logo) | Swaps the logo and wordmark shown inside the app. |  |
 
 </details>
 
@@ -24,10 +26,10 @@ Patches for apps I use, built with [Morphe](https://morphe.software).
 
 | 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
 |----------|----------------|-----------|
-| [Fix home screen numbers tile](#fix-home-screen-numbers-tile) | Stops a Channels diagnostic tip from rendering as a tile of giant numbers on the home feed. |  |
-| [Remove analytics](#remove-analytics) | Disables Niagara's usage-report uploads, retention events and analytics SDK sessions. |  |
-| [Unlock Pro](#unlock-pro) | Makes the entitlement holder always report Pro in Niagara Launcher. Unlocks all Pro features and bypasses the 7-day trial prompt. Server-backed features (account sync, Stripe checkout) are not affected. |  |
-| [Use Open-Meteo for weather](#use-open-meteo-for-weather) | Fetches weather from the free Open-Meteo API instead of Niagara's, so the at-a-glance tile works without an account. |  |
+| [Fix home screen numbers tile](#fix-home-screen-numbers-tile) | Hides the Channels diagnostic tip that shows up as a tile of giant numbers. |  |
+| [Remove analytics](#remove-analytics) | Stops usage reports, retention events and analytics sessions. |  |
+| [Unlock Pro](#unlock-pro) | Unlocks Pro features and skips the trial prompt. Account sync and Stripe checkout still need a real purchase. |  |
+| [Use Open-Meteo for weather](#use-open-meteo-for-weather) | Sources weather from Open-Meteo so the at-a-glance tile works without an account. |  |
 
 </details>
 
@@ -37,7 +39,7 @@ Patches for apps I use, built with [Morphe](https://morphe.software).
 
 | 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
 |----------|----------------|-----------|
-| [Unlock premium](#unlock-premium) | Makes isPremium() always return true in AI Audio Novel Reader. Unlocks all premium features and disables the 10-hour trial countdown. |  |
+| [Unlock premium](#unlock-premium) | Unlocks premium features and stops the 10-hour trial countdown. |  |
 
 </details>
 

@@ -1,3 +1,9 @@
+## [1.6.0](https://github.com/d0nj/morphe-patches/compare/v1.5.0...v1.6.0) (2026-11-02)
+
+### ✨ New Features
+
+* split Firefox branding into icon, logo and name patches ([8d2fcb9](https://github.com/d0nj/morphe-patches/commit/8d2fcb917301feed27a79686b4cd7625aead61d8))
+
 ## [1.5.0](https://github.com/d0nj/morphe-patches/compare/v1.4.2...v1.5.0) (2026-11-01)
 
 ### ✨ New Features
