@@ -1,10 +1,9 @@
 package app.d0nj.patches.niagara
 
+import app.d0nj.patches.niagara.Constants.COMPATIBILITY_NIAGARA
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.instructions
-import app.morphe.patcher.patch.AppTarget
 import app.morphe.patcher.patch.BytecodePatchContext
-import app.morphe.patcher.patch.Compatibility
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
@@ -25,18 +24,11 @@ private val STORE_PARAMS = listOf("Ljava/lang/String;", "J")
 @Suppress("unused")
 val openMeteoWeatherPatch = bytecodePatch(
     name = "Use Open-Meteo for weather",
-    description = "Fetches weather from the free Open-Meteo API instead of Niagara's, " +
-        "so the at-a-glance tile works without an account.",
+    description = "Sources weather from Open-Meteo so the at-a-glance tile works " +
+        "without an account.",
     default = true,
 ) {
-    compatibleWith(
-        Compatibility(
-            packageName = "bitpit.launcher",
-            name = "Niagara Launcher",
-            appIconColor = 0x1E88E5,
-            targets = listOf(AppTarget(version = null)),
-        ),
-    )
+    compatibleWith(COMPATIBILITY_NIAGARA)
 
     extendWith("extensions/extension.mpe")
 
