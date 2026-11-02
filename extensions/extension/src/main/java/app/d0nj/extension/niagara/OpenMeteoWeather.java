@@ -112,7 +112,7 @@ public final class OpenMeteoWeather {
                         .put("dt", now)
                         .put("temp", 0.0)
                         .put("feels_like", 0.0)
-                        .put("weather", conditions(0, now, 0, Long.MAX_VALUE)))
+                        .put("weather", conditions(0, true)))
                     .put("minutely", new JSONArray())
                     .put("hourly", new JSONArray())
                     .put("daily", new JSONArray()))
@@ -156,8 +156,8 @@ public final class OpenMeteoWeather {
         String url = ENDPOINT
             + "?latitude=" + URLEncoder.encode(String.valueOf(lat), "UTF-8")
             + "&longitude=" + URLEncoder.encode(String.valueOf(lon), "UTF-8")
-            + "&current=temperature_2m,apparent_temperature,weather_code"
-            + "&hourly=temperature_2m,apparent_temperature,precipitation_probability,weather_code"
+            + "&current=temperature_2m,apparent_temperature,weather_code,is_day"
+            + "&hourly=temperature_2m,apparent_temperature,precipitation_probability,weather_code,is_day"
             + "&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,weather_code"
             + "&timezone=auto&forecast_days=7";
 
@@ -190,9 +190,6 @@ public final class OpenMeteoWeather {
     private static String encode(String body, float lat, float lon) throws Exception {
         JSONObject source = new JSONObject(body);
         long utcOffsetSeconds = source.optLong("utc_offset_seconds", 0L);
-        JSONObject dailySource = source.optJSONObject("daily");
-        long sunriseToday = firstTime(dailySource, "sunrise", utcOffsetSeconds);
-        long sunsetToday = firstTime(dailySource, "sunset", utcOffsetSeconds);
 
         JSONObject root = new JSONObject();
         root.put("timestamp", Instant.now().getEpochSecond());
@@ -201,19 +198,14 @@ public final class OpenMeteoWeather {
         root.put("long", String.valueOf(lon));
         root.put("lang", "en");
         root.put("forecast", new JSONObject()
-            .put("current", current(source, utcOffsetSeconds, sunriseToday, sunsetToday))
+            .put("current", current(source, utcOffsetSeconds))
             .put("minutely", new JSONArray())
-            .put("hourly", hourly(source, utcOffsetSeconds, sunriseToday, sunsetToday))
+            .put("hourly", hourly(source, utcOffsetSeconds))
             .put("daily", daily(source, utcOffsetSeconds)));
         return root.toString();
     }
 
-    private static JSONObject current(
-        JSONObject source,
-        long utcOffsetSeconds,
-        long sunrise,
-        long sunset
-    ) throws Exception {
+    private static JSONObject current(JSONObject source, long utcOffsetSeconds) throws Exception {
         JSONObject current = source.getJSONObject("current");
         int code = current.getInt("weather_code");
         long dt = toEpochSeconds(current.getString("time"), utcOffsetSeconds);
@@ -221,31 +213,28 @@ public final class OpenMeteoWeather {
             .put("dt", dt)
             .put("temp", round(current.getDouble("temperature_2m")))
             .put("feels_like", round(current.getDouble("apparent_temperature")))
-            .put("weather", conditions(code, dt, sunrise, sunset));
+            .put("weather", conditions(code, current.optInt("is_day", 1) == 1));
     }
 
-    private static JSONArray hourly(
-        JSONObject source,
-        long utcOffsetSeconds,
-        long sunrise,
-        long sunset
-    ) throws Exception {
+    private static JSONArray hourly(JSONObject source, long utcOffsetSeconds) throws Exception {
         JSONObject hourly = source.getJSONObject("hourly");
         JSONArray time = hourly.getJSONArray("time");
         JSONArray temp = hourly.getJSONArray("temperature_2m");
         JSONArray feels = hourly.getJSONArray("apparent_temperature");
         JSONArray pop = hourly.optJSONArray("precipitation_probability");
         JSONArray code = hourly.getJSONArray("weather_code");
+        JSONArray isDay = hourly.optJSONArray("is_day");
 
         JSONArray points = new JSONArray();
         for (int i = 0; i < time.length(); i++) {
             long dt = toEpochSeconds(time.getString(i), utcOffsetSeconds);
+            boolean day = isDay == null || isDay.optInt(i, 1) == 1;
             points.put(new JSONObject()
                 .put("dt", dt)
                 .put("temp", round(temp.getDouble(i)))
                 .put("feels_like", round(feels.getDouble(i)))
                 .put("pop", pop == null ? 0.0 : round(pop.optDouble(i, 0.0) / 100.0))
-                .put("weather", conditions(code.optInt(i, 0), dt, sunrise, sunset)));
+                .put("weather", conditions(code.optInt(i, 0), day)));
         }
         return points;
     }
@@ -278,27 +267,16 @@ public final class OpenMeteoWeather {
                     .put("eve", round(max.optDouble(i, 0)))
                     .put("morn", round(min.optDouble(i, 0))))
                 .put("pop", pop == null ? 0.0 : round(pop.optDouble(i, 0.0) / 100.0))
-                .put("weather", conditions(code.optInt(i, 0), noon, daySunrise, daySunset)));
+                .put("weather", conditions(code.optInt(i, 0), true)));
         }
         return points;
     }
 
-    private static JSONArray conditions(int wmo, long dt, long sunrise, long sunset) throws Exception {
-        String icon = dt >= sunrise && dt < sunset ? "d" : "n";
+    private static JSONArray conditions(int wmo, boolean day) throws Exception {
         return new JSONArray().put(new JSONObject()
             .put("id", openWeatherMapId(wmo))
             .put("description", description(wmo))
-            .put("icon", icon));
-    }
-
-    private static long firstTime(JSONObject daily, String key, long utcOffsetSeconds) {
-        if (daily == null) {
-            return 0L;
-        }
-        JSONArray values = daily.optJSONArray(key);
-        return values == null || values.length() == 0
-            ? 0L
-            : toEpochSeconds(values.optString(0, ""), utcOffsetSeconds);
+            .put("icon", day ? "d" : "n"));
     }
 
     private static int openWeatherMapId(int wmo) {
