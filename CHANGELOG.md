@@ -1,3 +1,9 @@
+## [1.6.1-dev.2](https://github.com/d0nj/morphe-patches/compare/v1.6.1-dev.1...v1.6.1-dev.2) (2026-11-02)
+
+### 🐛 Bug Fixes
+
+* read weather coordinates by field name ([3631ffc](https://github.com/d0nj/morphe-patches/commit/3631ffce49117fccd488630b5f93677e0bbeacdb))
+
 ## [1.6.1-dev.1](https://github.com/d0nj/morphe-patches/compare/v1.6.0...v1.6.1-dev.1) (2026-11-02)
 
 ### 🐛 Bug Fixes
