@@ -411,10 +411,11 @@ public final class BreezyWeather {
         long now = Instant.now().getEpochSecond();
         long refresh = root.optLong("refreshTime", 0L) / 1000L;
         String code = current.optString("weatherCode", "");
+        Double feels = feelsLike(current);
         return new JSONObject()
             .put("dt", refresh > 0L ? refresh : now)
             .put("temp", NiagaraWeather.round(temp))
-            .put("feels_like", NiagaraWeather.round(temp))
+            .put("feels_like", NiagaraWeather.round(feels != null ? feels : temp))
             .put("weather", NiagaraWeather.conditions(
                 owmId(code),
                 text(code, current.optString("weatherText", "")),
@@ -438,10 +439,11 @@ public final class BreezyWeather {
             }
             String code = entry.optString("weatherCode", "");
             Double precipitation = precipitation(entry.optJSONObject("precipitationProbability"));
+            Double feels = feelsLike(entry);
             points.put(new JSONObject()
                 .put("dt", entry.optLong("date", 0L) / 1000L)
                 .put("temp", NiagaraWeather.round(temp))
-                .put("feels_like", NiagaraWeather.round(temp))
+                .put("feels_like", NiagaraWeather.round(feels != null ? feels : temp))
                 .put("pop", precipitation == null ? 0.0 : NiagaraWeather.round(precipitation / 100.0))
                 .put("weather", NiagaraWeather.conditions(
                     owmId(code),
@@ -517,6 +519,25 @@ public final class BreezyWeather {
             return null;
         }
         JSONObject inner = node.optJSONObject("temperature");
+        if (inner == null || inner.isNull("value")) {
+            return null;
+        }
+        return celsius(inner.optDouble("value", 0.0), inner.optString("unit", "c"));
+    }
+
+    /**
+     * Provider's feels-like, if present. Falls back to {@code temp} at the
+     * call sites; never null on its own terms so absence stays visible.
+     */
+    private static Double feelsLike(JSONObject block) {
+        if (block == null) {
+            return null;
+        }
+        JSONObject node = block.optJSONObject("temperature");
+        if (node == null) {
+            return null;
+        }
+        JSONObject inner = node.optJSONObject("sourceFeelsLike");
         if (inner == null || inner.isNull("value")) {
             return null;
         }
