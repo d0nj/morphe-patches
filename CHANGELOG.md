@@ -1,3 +1,9 @@
+## [1.7.0-dev.1](https://github.com/d0nj/morphe-patches/compare/v1.6.1-dev.3...v1.7.0-dev.1) (2026-11-03)
+
+### ✨ New Features
+
+* add Breezy Weather as a Niagara weather provider ([1942a72](https://github.com/d0nj/morphe-patches/commit/1942a726b10b4c89a18c33003827a9e55a86497d)), closes [#21](https://github.com/d0nj/morphe-patches/issues/21)
+
 ## [1.6.1-dev.3](https://github.com/d0nj/morphe-patches/compare/v1.6.1-dev.2...v1.6.1-dev.3) (2026-11-02)
 
 ### 🐛 Bug Fixes
