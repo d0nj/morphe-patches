@@ -1,3 +1,9 @@
+## [1.7.0-dev.2](https://github.com/d0nj/morphe-patches/compare/v1.7.0-dev.1...v1.7.0-dev.2) (2026-11-03)
+
+### 🐛 Bug Fixes
+
+* harden weather provider failure handling ([d54c528](https://github.com/d0nj/morphe-patches/commit/d54c528140d6241a600348a447a48f0d1baf1370))
+
 ## [1.7.0-dev.1](https://github.com/d0nj/morphe-patches/compare/v1.6.1-dev.3...v1.7.0-dev.1) (2026-11-03)
 
 ### ✨ New Features
