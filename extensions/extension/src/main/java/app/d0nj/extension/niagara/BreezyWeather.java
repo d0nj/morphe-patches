@@ -36,8 +36,14 @@ public final class BreezyWeather {
     /** Sentinel returned when the provider read or decoding fails. */
     public static final String FAILED = "__breezy_failed__";
 
-    /** Last successful payload, reused when a refresh fails. Process-lifetime only. */
+    private static final long CACHE_MAX_AGE_MS = 3 * 60 * 60 * 1000L;
+    private static final double CACHE_COORD_TOLERANCE = 0.01;
+
+    /** Last successful payload, reused when a refresh for the same place fails. Process-lifetime only. */
     private static volatile String lastGood;
+    private static volatile float lastGoodLat;
+    private static volatile float lastGoodLon;
+    private static volatile long lastGoodAtMs;
 
     private static volatile String lastFailureReason = "Breezy Weather is unavailable";
     private static volatile Context appContext;
@@ -47,7 +53,6 @@ public final class BreezyWeather {
 
     /** Fetches a forecast for a Niagara coordinates object, or {@link #FAILED}. Never throws. */
     public static String forecast(Object coordinates) {
-        android.util.Log.i("BreezyWeather", "forecast enter: " + coordinates);
         if (coordinates == null) {
             android.util.Log.e("BreezyWeather", "coordinates null");
             lastFailureReason = "Breezy Weather is unavailable";
@@ -62,13 +67,20 @@ public final class BreezyWeather {
             }
             final float lat = latLon[0];
             final float lon = latLon[1];
-            android.util.Log.i("BreezyWeather", "coords " + lat + "," + lon);
             String result = fetchOffMain(lat, lon);
             android.util.Log.i("BreezyWeather", "result length: " + (result == null ? -1 : result.length()));
             if (result == null) {
+                String cached = cachedFor(lat, lon);
+                if (cached != null) {
+                    android.util.Log.e("BreezyWeather", "reusing last good payload");
+                    return cached;
+                }
                 return FAILED;
             }
             lastGood = result;
+            lastGoodLat = lat;
+            lastGoodLon = lon;
+            lastGoodAtMs = System.currentTimeMillis();
             return result;
         } catch (Throwable t) {
             android.util.Log.e("BreezyWeather", "forecast failed", t);
@@ -86,8 +98,13 @@ public final class BreezyWeather {
                 holder[0] = fetch(lat, lon);
             }
         }, "breezy-fetch");
+        worker.setDaemon(true);
         worker.start();
         worker.join(20_000L);
+        if (worker.isAlive()) {
+            worker.interrupt();
+            return null;
+        }
         return holder[0];
     }
 
@@ -96,13 +113,23 @@ public final class BreezyWeather {
         if (forecast != null && !FAILED.equals(forecast)) {
             return forecast;
         }
-        String cached = lastGood;
-        if (cached != null) {
-            android.util.Log.e("BreezyWeather", "reusing last good payload");
-            return cached;
-        }
         android.util.Log.e("BreezyWeather", "returning fallback payload");
         return fallback();
+    }
+
+    private static String cachedFor(float lat, float lon) {
+        String cached = lastGood;
+        if (cached == null) {
+            return null;
+        }
+        if (System.currentTimeMillis() - lastGoodAtMs > CACHE_MAX_AGE_MS) {
+            return null;
+        }
+        if (Math.abs(lastGoodLat - lat) > CACHE_COORD_TOLERANCE
+                || Math.abs(lastGoodLon - lon) > CACHE_COORD_TOLERANCE) {
+            return null;
+        }
+        return cached;
     }
 
     private static String fallback() {
@@ -305,6 +332,9 @@ public final class BreezyWeather {
             byte[] blob = cursor.getBlob(cursor.getColumnIndexOrThrow("weather"));
             if (blob == null) {
                 return fail("Open Breezy Weather and refresh its weather");
+            }
+            if (blob.length > MAX_BLOB_BYTES) {
+                return fail("Breezy Weather data is corrupt");
             }
             double lat = cursor.getDouble(cursor.getColumnIndexOrThrow("latitude"));
             double lon = cursor.getDouble(cursor.getColumnIndexOrThrow("longitude"));

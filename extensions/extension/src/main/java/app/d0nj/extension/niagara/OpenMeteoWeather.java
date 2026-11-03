@@ -22,23 +22,28 @@ import java.time.format.DateTimeFormatter;
 public final class OpenMeteoWeather {
 
     private static final String ENDPOINT = "https://api.open-meteo.com/v1/forecast";
-    private static final int CONNECT_TIMEOUT_MS = 10_000;
-    private static final int READ_TIMEOUT_MS = 15_000;
+    private static final int CONNECT_TIMEOUT_MS = 5_000;
+    private static final int READ_TIMEOUT_MS = 10_000;
     private static final DateTimeFormatter LOCAL = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
     private static final String USER_AGENT = "niagara-openmeteo-patch/1.0";
 
     /** Sentinel returned when the upstream call or decoding fails. */
     public static final String FAILED = "__openmeteo_failed__";
 
-    /** Last successful payload, reused when a refresh fails. Process-lifetime only. */
+    private static final long CACHE_MAX_AGE_MS = 3 * 60 * 60 * 1000L;
+    private static final double CACHE_COORD_TOLERANCE = 0.01;
+
+    /** Last successful payload, reused when a refresh for the same place fails. Process-lifetime only. */
     private static volatile String lastGood;
+    private static volatile float lastGoodLat;
+    private static volatile float lastGoodLon;
+    private static volatile long lastGoodAtMs;
 
     private OpenMeteoWeather() {
     }
 
     /** Fetches a forecast for a Niagara coordinates object, or {@link #FAILED}. Never throws. */
     public static String forecast(Object coordinates) {
-        android.util.Log.i("OpenMeteoWeather", "forecast enter: " + coordinates);
         if (coordinates == null) {
             android.util.Log.e("OpenMeteoWeather", "coordinates null");
             return FAILED;
@@ -51,13 +56,20 @@ public final class OpenMeteoWeather {
             }
             final float lat = latLon[0];
             final float lon = latLon[1];
-            android.util.Log.i("OpenMeteoWeather", "coords " + lat + "," + lon);
             String result = fetchOffMain(lat, lon);
             android.util.Log.i("OpenMeteoWeather", "result length: " + (result == null ? -1 : result.length()));
             if (result == null) {
+                String cached = cachedFor(lat, lon);
+                if (cached != null) {
+                    android.util.Log.e("OpenMeteoWeather", "reusing last good payload");
+                    return cached;
+                }
                 return FAILED;
             }
             lastGood = result;
+            lastGoodLat = lat;
+            lastGoodLon = lon;
+            lastGoodAtMs = System.currentTimeMillis();
             return result;
         } catch (Throwable t) {
             android.util.Log.e("OpenMeteoWeather", "forecast failed", t);
@@ -74,8 +86,13 @@ public final class OpenMeteoWeather {
                 holder[0] = fetch(lat, lon);
             }
         }, "openmeteo-fetch");
+        worker.setDaemon(true);
         worker.start();
         worker.join(20_000L);
+        if (worker.isAlive()) {
+            worker.interrupt();
+            return null;
+        }
         return holder[0];
     }
 
@@ -84,13 +101,23 @@ public final class OpenMeteoWeather {
         if (forecast != null && !FAILED.equals(forecast)) {
             return forecast;
         }
-        String cached = lastGood;
-        if (cached != null) {
-            android.util.Log.e("OpenMeteoWeather", "reusing last good payload");
-            return cached;
-        }
         android.util.Log.e("OpenMeteoWeather", "returning fallback payload");
         return fallback();
+    }
+
+    private static String cachedFor(float lat, float lon) {
+        String cached = lastGood;
+        if (cached == null) {
+            return null;
+        }
+        if (System.currentTimeMillis() - lastGoodAtMs > CACHE_MAX_AGE_MS) {
+            return null;
+        }
+        if (Math.abs(lastGoodLat - lat) > CACHE_COORD_TOLERANCE
+                || Math.abs(lastGoodLon - lon) > CACHE_COORD_TOLERANCE) {
+            return null;
+        }
+        return cached;
     }
 
     private static String fallback() {
@@ -101,7 +128,7 @@ public final class OpenMeteoWeather {
                     .put("dt", now)
                     .put("temp", 0.0)
                     .put("feels_like", 0.0)
-                    .put("weather", NiagaraWeather.conditions(800, "clear sky", true)),
+                    .put("weather", NiagaraWeather.conditions(800, "Weather unavailable", true)),
                 new JSONArray(),
                 new JSONArray());
         } catch (Exception e) {
