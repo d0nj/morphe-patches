@@ -1,3 +1,9 @@
+## [1.7.0-dev.3](https://github.com/d0nj/morphe-patches/compare/v1.7.0-dev.2...v1.7.0-dev.3) (2026-11-03)
+
+### 🐛 Bug Fixes
+
+* use Breezy sourceFeelsLike for feels-like temperature ([9add906](https://github.com/d0nj/morphe-patches/commit/9add9065e08fd7e9db21e6c7ce2acfe6f10c9a9a))
+
 ## [1.7.0-dev.2](https://github.com/d0nj/morphe-patches/compare/v1.7.0-dev.1...v1.7.0-dev.2) (2026-11-03)
 
 ### 🐛 Bug Fixes

@@ -7,7 +7,7 @@ Patches for apps I use, built with [Morphe](https://morphe.software).
 ## 🩹 Patches list
 
 <!-- PATCHES_START EXPANDED -->
-> **[v1.7.0-dev.2](https://github.com/d0nj/morphe-patches/releases/tag/v1.7.0-dev.2)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;8 patches total
+> **[v1.7.0-dev.3](https://github.com/d0nj/morphe-patches/releases/tag/v1.7.0-dev.3)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;8 patches total
 <details open>
 <summary>📦 Niagara Launcher&nbsp;&nbsp;•&nbsp;&nbsp;4 patches</summary>
 <br>
