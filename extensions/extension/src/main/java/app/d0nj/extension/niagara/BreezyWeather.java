@@ -15,7 +15,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
@@ -36,17 +35,10 @@ public final class BreezyWeather {
     /** Sentinel returned when the provider read or decoding fails. */
     public static final String FAILED = "__breezy_failed__";
 
-    private static final long CACHE_MAX_AGE_MS = 3 * 60 * 60 * 1000L;
-    private static final double CACHE_COORD_TOLERANCE = 0.01;
-
-    /** Last successful payload, reused when a refresh for the same place fails. Process-lifetime only. */
-    private static volatile String lastGood;
-    private static volatile float lastGoodLat;
-    private static volatile float lastGoodLon;
-    private static volatile long lastGoodAtMs;
+    /** Last successful payload, reused when a refresh for the same place fails. */
+    private static final NiagaraWeather.Cache CACHE = new NiagaraWeather.Cache("breezy");
 
     private static volatile String lastFailureReason = "Breezy Weather is unavailable";
-    private static volatile Context appContext;
 
     private BreezyWeather() {
     }
@@ -67,20 +59,16 @@ public final class BreezyWeather {
             }
             final float lat = latLon[0];
             final float lon = latLon[1];
-            String result = fetchOffMain(lat, lon);
-            android.util.Log.i("BreezyWeather", "result length: " + (result == null ? -1 : result.length()));
+            String result = fetchWithRetry(lat, lon);
             if (result == null) {
-                String cached = cachedFor(lat, lon);
+                String cached = CACHE.get(lat, lon);
                 if (cached != null) {
                     android.util.Log.e("BreezyWeather", "reusing last good payload");
                     return cached;
                 }
                 return FAILED;
             }
-            lastGood = result;
-            lastGoodLat = lat;
-            lastGoodLon = lon;
-            lastGoodAtMs = System.currentTimeMillis();
+            CACHE.put(result, lat, lon);
             return result;
         } catch (Throwable t) {
             android.util.Log.e("BreezyWeather", "forecast failed", t);
@@ -89,23 +77,29 @@ public final class BreezyWeather {
         }
     }
 
-    // The call site's dispatcher may be main; ContentProvider reads there throw.
-    private static String fetchOffMain(final float lat, final float lon) throws Exception {
-        final String[] holder = new String[1];
-        Thread worker = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                holder[0] = fetch(lat, lon);
+    /**
+     * The first read after a cold start often loses a race with Breezy Weather's
+     * own process spinning up, which is the failure users see as a placeholder
+     * until the next refresh. A couple of short retries close that window.
+     */
+    private static String fetchWithRetry(float lat, float lon) {
+        String result = null;
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            result = NiagaraWeather.offMain("breezy-fetch", 20_000L, () -> fetch(lat, lon));
+            if (result != null) {
+                return result;
             }
-        }, "breezy-fetch");
-        worker.setDaemon(true);
-        worker.start();
-        worker.join(20_000L);
-        if (worker.isAlive()) {
-            worker.interrupt();
-            return null;
+            android.util.Log.e("BreezyWeather", "fetch attempt " + attempt + " failed");
+            if (attempt < 3) {
+                try {
+                    Thread.sleep(1_500L);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return null;
+                }
+            }
         }
-        return holder[0];
+        return result;
     }
 
     /** Never throws: the patched call site has no catch, so a payload must always come back. */
@@ -115,21 +109,6 @@ public final class BreezyWeather {
         }
         android.util.Log.e("BreezyWeather", "returning fallback payload");
         return fallback();
-    }
-
-    private static String cachedFor(float lat, float lon) {
-        String cached = lastGood;
-        if (cached == null) {
-            return null;
-        }
-        if (System.currentTimeMillis() - lastGoodAtMs > CACHE_MAX_AGE_MS) {
-            return null;
-        }
-        if (Math.abs(lastGoodLat - lat) > CACHE_COORD_TOLERANCE
-                || Math.abs(lastGoodLon - lon) > CACHE_COORD_TOLERANCE) {
-            return null;
-        }
-        return cached;
     }
 
     private static String fallback() {
@@ -184,23 +163,11 @@ public final class BreezyWeather {
     }
 
     private static Context applicationContext() {
-        Context cached = appContext;
-        if (cached != null) {
-            return cached;
-        }
-        try {
-            Class<?> threadClass = Class.forName("android.app.ActivityThread");
-            Object thread = threadClass.getMethod("currentActivityThread").invoke(null);
-            Context context = (Context) threadClass.getMethod("getApplication").invoke(thread);
-            if (context != null) {
-                appContext = context;
-            }
-            return context;
-        } catch (Throwable t) {
-            android.util.Log.e("BreezyWeather", "no application context", t);
+        Context context = NiagaraWeather.applicationContext();
+        if (context == null) {
             lastFailureReason = "Breezy Weather is not ready";
-            return null;
         }
+        return context;
     }
 
     private static Cursor query(Context context, Uri uri, String selection) {
@@ -364,7 +331,13 @@ public final class BreezyWeather {
                 }
                 out.write(buffer, 0, count);
             }
-            return new JSONObject(out.toString(StandardCharsets.UTF_8.name()));
+            String body = out.toString(StandardCharsets.UTF_8.name()).trim();
+            // Breezy exports JSON null until it has fetched weather of its own,
+            // which is the ordinary state right after installing it.
+            if (body.isEmpty() || "null".equals(body)) {
+                return null;
+            }
+            return new JSONObject(body);
         }
     }
 
@@ -376,7 +349,10 @@ public final class BreezyWeather {
             android.util.Log.e("BreezyWeather", "decompress failed", e);
             return fail("Breezy Weather data is corrupt");
         }
-        ZoneId zone = zoneOf(timezone);
+        if (root == null) {
+            return fail("Open Breezy Weather and refresh its weather");
+        }
+        ZoneId zone = NiagaraWeather.zoneOf(timezone);
         JSONObject current;
         JSONArray hourly;
         JSONArray daily;
@@ -480,7 +456,7 @@ public final class BreezyWeather {
             }
             long date = entry.optLong("date", 0L);
             LocalDate localDate = Instant.ofEpochMilli(date).atZone(zone).toLocalDate();
-            long[] sun = sunTimes(localDate, lat, lon, zone);
+            long[] sun = NiagaraWeather.sunTimes(localDate, lat, lon, zone);
             Double dayPop = day == null ? null
                 : precipitation(day.optJSONObject("precipitationProbability"));
             Double nightPop = night == null ? null
@@ -652,7 +628,7 @@ public final class BreezyWeather {
             }
         }
         LocalDate today = Instant.ofEpochSecond(now).atZone(zone).toLocalDate();
-        long[] sun = sunTimes(today, lat, lon, zone);
+        long[] sun = NiagaraWeather.sunTimes(today, lat, lon, zone);
         if (now >= sun[0] && now <= sun[1]) {
             return true;
         }
@@ -660,46 +636,10 @@ public final class BreezyWeather {
         return hour >= 6 && hour <= 17;
     }
 
-    private static ZoneId zoneOf(String timezone) {
-        if (timezone == null || timezone.isEmpty()) {
-            return ZoneId.systemDefault();
-        }
-        try {
-            return ZoneId.of(timezone);
-        } catch (Exception e) {
-            return ZoneId.systemDefault();
-        }
-    }
-
     private static String fail(String reason) {
         lastFailureReason = reason;
         android.util.Log.e("BreezyWeather", reason);
         return null;
-    }
-
-    private static long[] sunTimes(LocalDate date, double lat, double lon, ZoneId zone) {
-        // NOAA fractional-year approximation; a minute of drift is irrelevant for a weather tile.
-        double g = 2.0 * Math.PI / 365.0 * (date.getDayOfYear() - 1 + 0.5);
-        double eqtime = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g)
-                - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
-        double decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g)
-                - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g)
-                - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
-        double cosHa = Math.cos(Math.toRadians(90.833))
-                / (Math.cos(Math.toRadians(lat)) * Math.cos(decl))
-                - Math.tan(Math.toRadians(lat)) * Math.tan(decl);
-        if (cosHa < -1.0 || cosHa > 1.0) {
-            // Polar day or night: fixed 06:00/18:00 local so downstream day/night logic still works.
-            return new long[] {
-                date.atTime(6, 0).atZone(zone).toEpochSecond(),
-                date.atTime(18, 0).atZone(zone).toEpochSecond(),
-            };
-        }
-        double haDeg = Math.toDegrees(Math.acos(cosHa));
-        long utcMidnight = date.atTime(12, 0).toEpochSecond(ZoneOffset.UTC) - 43_200L;
-        long sunrise = utcMidnight + (long) ((720 - 4.0 * (lon + haDeg) - eqtime) * 60.0);
-        long sunset = utcMidnight + (long) ((720 - 4.0 * (lon - haDeg) - eqtime) * 60.0);
-        return new long[] { sunrise, sunset };
     }
 
     private static final class Location {

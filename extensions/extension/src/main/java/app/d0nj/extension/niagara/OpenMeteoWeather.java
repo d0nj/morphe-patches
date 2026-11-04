@@ -30,14 +30,8 @@ public final class OpenMeteoWeather {
     /** Sentinel returned when the upstream call or decoding fails. */
     public static final String FAILED = "__openmeteo_failed__";
 
-    private static final long CACHE_MAX_AGE_MS = 3 * 60 * 60 * 1000L;
-    private static final double CACHE_COORD_TOLERANCE = 0.01;
-
-    /** Last successful payload, reused when a refresh for the same place fails. Process-lifetime only. */
-    private static volatile String lastGood;
-    private static volatile float lastGoodLat;
-    private static volatile float lastGoodLon;
-    private static volatile long lastGoodAtMs;
+    /** Last successful payload, reused when a refresh for the same place fails. */
+    private static final NiagaraWeather.Cache CACHE = new NiagaraWeather.Cache("openmeteo");
 
     private OpenMeteoWeather() {
     }
@@ -56,44 +50,22 @@ public final class OpenMeteoWeather {
             }
             final float lat = latLon[0];
             final float lon = latLon[1];
-            String result = fetchOffMain(lat, lon);
-            android.util.Log.i("OpenMeteoWeather", "result length: " + (result == null ? -1 : result.length()));
+            String result = NiagaraWeather.offMain("openmeteo-fetch", 20_000L,
+                () -> fetch(lat, lon));
             if (result == null) {
-                String cached = cachedFor(lat, lon);
+                String cached = CACHE.get(lat, lon);
                 if (cached != null) {
                     android.util.Log.e("OpenMeteoWeather", "reusing last good payload");
                     return cached;
                 }
                 return FAILED;
             }
-            lastGood = result;
-            lastGoodLat = lat;
-            lastGoodLon = lon;
-            lastGoodAtMs = System.currentTimeMillis();
+            CACHE.put(result, lat, lon);
             return result;
         } catch (Throwable t) {
             android.util.Log.e("OpenMeteoWeather", "forecast failed", t);
             return FAILED;
         }
-    }
-
-    // The call site's dispatcher may be main; blocking HTTP there throws.
-    private static String fetchOffMain(final float lat, final float lon) throws Exception {
-        final String[] holder = new String[1];
-        Thread worker = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                holder[0] = fetch(lat, lon);
-            }
-        }, "openmeteo-fetch");
-        worker.setDaemon(true);
-        worker.start();
-        worker.join(20_000L);
-        if (worker.isAlive()) {
-            worker.interrupt();
-            return null;
-        }
-        return holder[0];
     }
 
     /** Never throws: the patched call site has no catch, so a payload must always come back. */
@@ -103,21 +75,6 @@ public final class OpenMeteoWeather {
         }
         android.util.Log.e("OpenMeteoWeather", "returning fallback payload");
         return fallback();
-    }
-
-    private static String cachedFor(float lat, float lon) {
-        String cached = lastGood;
-        if (cached == null) {
-            return null;
-        }
-        if (System.currentTimeMillis() - lastGoodAtMs > CACHE_MAX_AGE_MS) {
-            return null;
-        }
-        if (Math.abs(lastGoodLat - lat) > CACHE_COORD_TOLERANCE
-                || Math.abs(lastGoodLon - lon) > CACHE_COORD_TOLERANCE) {
-            return null;
-        }
-        return cached;
     }
 
     private static String fallback() {

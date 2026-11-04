@@ -21,7 +21,9 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 private const val ADAPTER_OPEN_METEO = "Lapp/d0nj/extension/niagara/OpenMeteoWeather;"
 private const val ADAPTER_BREEZY_WEATHER = "Lapp/d0nj/extension/niagara/BreezyWeather;"
+private const val ADAPTER_MET_NORWAY = "Lapp/d0nj/extension/niagara/MetNorwayWeather;"
 private const val PROVIDER_BREEZY_WEATHER = "breezy-weather"
+private const val PROVIDER_MET_NORWAY = "met-norway"
 private const val WEATHER_MODEL_PACKAGE = "Lbitpit/launcher/backend/weather/model/"
 private val STORE_PARAMS = listOf("Ljava/lang/String;", "J")
 
@@ -29,9 +31,9 @@ private val STORE_PARAMS = listOf("Ljava/lang/String;", "J")
 val weatherProviderPatch = bytecodePatch(
     name = "Custom weather provider",
     description = "Serves the at-a-glance weather tile without a Niagara account, " +
-        "using Open-Meteo or Breezy Weather. Breezy Weather needs version 6.1.0 or newer with at " +
-        "least one location, and Niagara must be granted the \"Read Breezy Weather data\" " +
-        "permission from Niagara's app info → Permissions screen.",
+        "using Open-Meteo, MET Norway or Breezy Weather. Breezy Weather needs version 6.1.0 or " +
+        "newer with at least one location, and Niagara must be granted the \"Read Breezy Weather " +
+        "data\" permission from Niagara's app info → Permissions screen.",
     default = true,
 ) {
     compatibleWith(COMPATIBILITY_NIAGARA)
@@ -43,12 +45,14 @@ val weatherProviderPatch = bytecodePatch(
         default = "open-meteo",
         values = mapOf(
             "Open-Meteo" to "open-meteo",
+            "MET Norway" to PROVIDER_MET_NORWAY,
             "Breezy Weather" to PROVIDER_BREEZY_WEATHER,
         ),
         title = "Weather provider",
-        description = "Source for the at-a-glance tile's forecast. Open-Meteo works out of the box. " +
-            "Breezy Weather reads your installed Breezy Weather app (6.1.0+, at least one location) — " +
-            "grant Niagara the Breezy Weather read permission from Niagara's app info → Permissions.",
+        description = "Source for the at-a-glance tile's forecast. Open-Meteo and MET Norway " +
+            "work out of the box. Breezy Weather reads your installed Breezy Weather app (6.1.0+, " +
+            "at least one location) — grant Niagara the Breezy Weather read permission from " +
+            "Niagara's app info → Permissions.",
         required = true,
     )
 
@@ -103,10 +107,10 @@ val weatherProviderPatch = bytecodePatch(
             it.name == fetch.name && it.parameterTypes == fetch.parameterTypes
         }
 
-        val adapter = if (weatherProviderOption == PROVIDER_BREEZY_WEATHER) {
-            ADAPTER_BREEZY_WEATHER
-        } else {
-            ADAPTER_OPEN_METEO
+        val adapter = when (weatherProviderOption) {
+            PROVIDER_BREEZY_WEATHER -> ADAPTER_BREEZY_WEATHER
+            PROVIDER_MET_NORWAY -> ADAPTER_MET_NORWAY
+            else -> ADAPTER_OPEN_METEO
         }
         redirectFetchToAdapter(repository, method, adapter)
     }
