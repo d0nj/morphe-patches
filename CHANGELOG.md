@@ -1,3 +1,9 @@
+## [1.7.0-dev.4](https://github.com/d0nj/morphe-patches/compare/v1.7.0-dev.3...v1.7.0-dev.4) (2026-11-04)
+
+### ✨ New Features
+
+* add MET Norway as a Niagara weather provider ([f146c00](https://github.com/d0nj/morphe-patches/commit/f146c009dcb82bebcb37e8111cdb991c6818146b))
+
 ## [1.7.0-dev.3](https://github.com/d0nj/morphe-patches/compare/v1.7.0-dev.2...v1.7.0-dev.3) (2026-11-03)
 
 ### 🐛 Bug Fixes
