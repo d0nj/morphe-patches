@@ -6,6 +6,8 @@ import app.morphe.patcher.extensions.InstructionExtensions.instructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.resourcePatch
+import app.morphe.patcher.patch.stringOption
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -17,20 +19,82 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
-private const val ADAPTER = "Lapp/d0nj/extension/niagara/OpenMeteoWeather;"
+private const val ADAPTER_OPEN_METEO = "Lapp/d0nj/extension/niagara/OpenMeteoWeather;"
+private const val ADAPTER_BREEZY_WEATHER = "Lapp/d0nj/extension/niagara/BreezyWeather;"
+private const val ADAPTER_MET_NORWAY = "Lapp/d0nj/extension/niagara/MetNorwayWeather;"
+private const val PROVIDER_BREEZY_WEATHER = "breezy-weather"
+private const val PROVIDER_MET_NORWAY = "met-norway"
 private const val WEATHER_MODEL_PACKAGE = "Lbitpit/launcher/backend/weather/model/"
 private val STORE_PARAMS = listOf("Ljava/lang/String;", "J")
 
 @Suppress("unused")
-val openMeteoWeatherPatch = bytecodePatch(
-    name = "Use Open-Meteo for weather",
-    description = "Sources weather from Open-Meteo so the at-a-glance tile works " +
-        "without an account.",
+val weatherProviderPatch = bytecodePatch(
+    name = "Custom weather provider",
+    description = "Serves the at-a-glance weather tile without a Niagara account, " +
+        "using Open-Meteo, MET Norway or Breezy Weather. Breezy Weather needs version 6.1.0 or " +
+        "newer with at least one location, and Niagara must be granted the \"Read Breezy Weather " +
+        "data\" permission from Niagara's app info → Permissions screen.",
     default = true,
 ) {
     compatibleWith(COMPATIBILITY_NIAGARA)
 
     extendWith("extensions/extension.mpe")
+
+    val weatherProviderOption by stringOption(
+        key = "weatherProvider",
+        default = "open-meteo",
+        values = mapOf(
+            "Open-Meteo" to "open-meteo",
+            "MET Norway" to PROVIDER_MET_NORWAY,
+            "Breezy Weather" to PROVIDER_BREEZY_WEATHER,
+        ),
+        title = "Weather provider",
+        description = "Source for the at-a-glance tile's forecast. Open-Meteo and MET Norway " +
+            "work out of the box. Breezy Weather reads your installed Breezy Weather app (6.1.0+, " +
+            "at least one location) — grant Niagara the Breezy Weather read permission from " +
+            "Niagara's app info → Permissions.",
+        required = true,
+    )
+
+    dependsOn(
+        resourcePatch {
+            execute {
+                if (weatherProviderOption != PROVIDER_BREEZY_WEATHER) return@execute
+
+                document("AndroidManifest.xml").use { manifest ->
+                    val root = manifest.documentElement
+
+                    val hasPermission = manifest.getElementsByTagName("uses-permission")
+                        .let { nodes ->
+                            (0 until nodes.length).any { i ->
+                                nodes.item(i).attributes?.getNamedItem("android:name")?.nodeValue ==
+                                    "org.breezyweather.READ_PROVIDER"
+                            }
+                        }
+                    if (!hasPermission) {
+                        val permission = manifest.createElement("uses-permission")
+                        permission.setAttribute("android:name", "org.breezyweather.READ_PROVIDER")
+                        root.appendChild(permission)
+                    }
+
+                    val queries = manifest.getElementsByTagName("queries").item(0)
+                        ?: manifest.createElement("queries").also { root.appendChild(it) }
+                    val hasPackage = queries.childNodes
+                        .let { nodes ->
+                            (0 until nodes.length).any { i ->
+                                (nodes.item(i) as? org.w3c.dom.Element)
+                                    ?.getAttribute("android:name") == "org.breezyweather"
+                            }
+                        }
+                    if (!hasPackage) {
+                        val packageNode = manifest.createElement("package")
+                        packageNode.setAttribute("android:name", "org.breezyweather")
+                        queries.appendChild(packageNode)
+                    }
+                }
+            }
+        },
+    )
 
     execute {
         val repository = weatherRepository()
@@ -43,7 +107,12 @@ val openMeteoWeatherPatch = bytecodePatch(
             it.name == fetch.name && it.parameterTypes == fetch.parameterTypes
         }
 
-        redirectFetchToAdapter(repository, method)
+        val adapter = when (weatherProviderOption) {
+            PROVIDER_BREEZY_WEATHER -> ADAPTER_BREEZY_WEATHER
+            PROVIDER_MET_NORWAY -> ADAPTER_MET_NORWAY
+            else -> ADAPTER_OPEN_METEO
+        }
+        redirectFetchToAdapter(repository, method, adapter)
     }
 }
 
@@ -100,7 +169,7 @@ private fun BytecodePatchContext.weatherFetchCoroutine(repositoryType: String): 
  * Replaces the weather fetch's fall-through body with an adapter call that
  * feeds Niagara's own parse-and-store method.
  */
-private fun BytecodePatchContext.redirectFetchToAdapter(repository: ClassDef, method: MutableMethod) {
+private fun BytecodePatchContext.redirectFetchToAdapter(repository: ClassDef, method: MutableMethod, adapter: String) {
     val repositoryType = repository.type
     val repositoryCapture = captureField(method, repositoryType)
         ?: throw PatchException("Weather repository field not found on ${method.definingClass}")
@@ -137,9 +206,9 @@ private fun BytecodePatchContext.redirectFetchToAdapter(repository: ClassDef, me
             iget-object v0, v$receiver, ${method.definingClass}->${repositoryCapture.second.name}:${repositoryCapture.second.type}
             check-cast v0, $repositoryType
             iget-object v1, v$receiver, ${method.definingClass}->${coordinatesCapture.second.name}:${coordinatesCapture.second.type}
-            invoke-static {v1}, $ADAPTER->forecast(Ljava/lang/Object;)Ljava/lang/String;
+            invoke-static {v1}, $adapter->forecast(Ljava/lang/Object;)Ljava/lang/String;
             move-result-object v1
-            invoke-static {v1}, $ADAPTER->requireForecast(Ljava/lang/String;)Ljava/lang/String;
+            invoke-static {v1}, $adapter->requireForecast(Ljava/lang/String;)Ljava/lang/String;
             move-result-object v1
             invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
             move-result-wide v3
